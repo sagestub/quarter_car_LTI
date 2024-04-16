@@ -54,45 +54,65 @@ legend('control input response','road disturbance response')
 
 %% open-loop state-space model
 % inputs: U (active forcer), W (road profile)
-A=[0                 1   0                                              0
-  -(b1*b2)/(m1*m2)   0   ((b1/m1)*((b1/m1)+(b1/m2)+(b2/m2)))-(k1/m1)   -(b1/m1)
-   b2/m2             0  -((b1/m1)+(b1/m2)+(b2/m2))                      1
-   k2/m2             0  -((k1/m1)+(k1/m2)+(k2/m2))                      0];
+% states:
+% x(0) = position of sprung mass (body)
+% x(1) = velocity of sprung mass (body)
+% x(2) = position of unsprung mass (wheel)
+% x(3) = velocity of unsprung mass (wheel)
+A=[0 1   0  0
+  -k1/m1 -b1/m1 k1/m1 b1/m1
+   0 0 0 1
+   (b1+k1)/m2 0 -(k1+k2)/m2 -(b1+b2)/m2];
 
-B=[0                 0
-   1/m1              (b1*b2)/(m1*m2)
-   0                -(b2/m2)
-   (1/m1)+(1/m2)    -(k2/m2)];
+B=[0 0 
+   1/m1 0
+   0 0
+   -1/m2 (b2+k2)/m2];
 
-C=[0 1 0 0];
+C=[1 0 0 0
+   0 0 1 0];
 
-D=[0 0];
-
+D=[0 0
+   0 0];
+x0 = [1.1 0 0.35 0]; % initial conditions of state variables
 sys=ss(A,B,C,D);
 
 % plot open-loop poles
-figure()
-p = eig(A)
-plot(real(p), imag(p), 'r*'); % plot poles of open-loop system
-title('Open-loop System Poles')
+% figure()
+% p = eig(A)
+% plot(real(p), imag(p), 'r*'); % plot poles of open-loop system
+% title('Open-loop System Poles')
 
-% plot output to step input
-figure()
-step(ss(A,B*[0; 1],C,D*[0;1]));
-
-dist = 1000; %meters test distance
-dx = 0.1; %meters distance increment
-spd_kph = 60 %kilometers per hour test speed
-wlen = dist/dx;
-w = func_roadElevationProfile(4, dist,dx,'figure',true,'fignum',6); %road profile vector
-u = zeros(1,numel(w));
+dist = 1000;            % meters test distance
+dx = 0.1;               % meters distance increment
+spd_kph = 60            % kilometers per hour test speed
+wlen = dist/dx;         % calculate length of road vector
+w = func_roadElevationProfile(4, dist,dx,'figure',false,'fignum',6); %road profile vector
+u = zeros(1,numel(w));  % create empty input vector
 input = [u; w];
-spd_mps = spd_kph/3.6;
-t_end = dist/spd_mps
-dt = t_end/size(w,2);
-t = 0:dt:dist/spd_mps; %time vector
-t = t(1:end-1);
-y = lsim(sys,input,t);
+
+spd_mps = spd_kph/3.6;  % convert nominal steady-state speed of simulation to meters/sec
+t_end = dist/spd_mps;   % final time value
+dt = t_end/size(w,2);   % calculate time step increment
+t = 0:dt:dist/spd_mps;  % create time vector
+t = t(1:end-1);         % clip time vector size to match road profile vector
+y = lsim(sys,input,t,x0);  % simulate system
+
+% animate model simulation
+addpath("qcar_animation")
+z0 = w; % road elevation
+z1 = y(:,2);              % wheel cm position
+z2 = y(:,1);          % sprung mass position
+zmf = 5;              % exaggerate response for better visualization
+umf = 5;              % road scaling factor
+road_z = w;
+road_x = 0:dx:dist;
+for i=1:length(t)
+    plotsusp([z0(i), z1(i)*zmf, z2(i)*zmf, t(i)],road_x,road_z,road_x(i),umf);
+    refresh
+end
+
+%% plot FFT of qcar response to road input
 
 figure(7)
 hold on;
