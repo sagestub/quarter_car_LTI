@@ -74,7 +74,7 @@ C=[1 0 0 0
 
 D=[0 0
    0 0];
-x0 = [1.1 0 0.35 0]; % initial conditions of state variables
+x0 = [0 0 0 0]; % initial conditions of state variables
 sys=ss(A,B,C,D);
 
 % plot open-loop poles
@@ -87,7 +87,7 @@ dist = 1000;            % meters test distance
 dx = 0.1;               % meters distance increment
 spd_kph = 60            % kilometers per hour test speed
 wlen = dist/dx;         % calculate length of road vector
-w = func_roadElevationProfile(4, dist,dx,'figure',false,'fignum',6); %road profile vector
+w = func_roadElevationProfile(6, dist,dx,'figure',false,'fignum',6); %road profile vector
 u = zeros(1,numel(w));  % create empty input vector
 input = [u; w];
 
@@ -98,13 +98,13 @@ t = 0:dt:dist/spd_mps;  % create time vector
 t = t(1:end-1);         % clip time vector size to match road profile vector
 y = lsim(sys,input,t,x0);  % simulate system
 
-% animate model simulation
+%% animate model simulation
 addpath("qcar_animation")
 z0 = w; % road elevation
 z1 = y(:,2);              % wheel cm position
 z2 = y(:,1);          % sprung mass position
 zmf = 5;              % exaggerate response for better visualization
-umf = 5;              % road scaling factor
+umf = 1;              % road scaling factor
 road_z = w;
 road_x = 0:dx:dist;
 for i=1:length(t)
