@@ -23,10 +23,10 @@ Bt = 0;              % tire damping rate (N-s/m)
 
 % model front 1/4 car
 m1 = M/4;                % 1/4 bus body mass                      (kg)
-m2 = M_fsus+M_whl  ;     % suspension mass                        (kg)
-k1 = Kf;                 % spring constant of suspension system   (N/m)
+m2 = M_rsus+M_whl  ;     % suspension mass                        (kg)
+k1 = Kr;                 % spring constant of suspension system   (N/m)
 k2 = Kt;                 % spring constant of wheel and tire      (N/m)
-b1 = Bf;                 % damping constant of suspension system  (N.s/m)
+b1 = Br;                 % damping constant of suspension system  (N.s/m)
 b2 = Bt;                 % damping constant of wheel and tire     (N.s/m)
 %U                      %control force
 
@@ -47,8 +47,10 @@ figure()
 
 figure()
 hold on;
-bodemag(G_u)
-bodemag(G_w)
+options = bodeoptions;
+options.FreqUnits = 'Hz';
+bodemag(G_u,options);
+bodemag(G_w,options);
 title('Frequency response to open-loop inputs')
 legend('control input response','road disturbance response')
 
@@ -62,20 +64,24 @@ legend('control input response','road disturbance response')
 A=[0 1   0  0
   -k1/m1 -b1/m1 k1/m1 b1/m1
    0 0 0 1
-   (b1+k1)/m2 0 -(k1+k2)/m2 -(b1+b2)/m2];
+   k1/m2 b1/m2 -(k1+k2)/m2 -b1/m2];
 
-B=[0 0 
-   1/m1 0
-   0 0
-   -1/m2 (b2+k2)/m2];
+B=[0     0 
+   1/m1  0
+   0     0
+   -1/m2 k2/m2];
 
 C=[1 0 0 0
    0 0 1 0];
 
 D=[0 0
    0 0];
-x0 = [0 0 0 0]; % initial conditions of state variables
 sys=ss(A,B,C,D);
+controllability = ctrb(sys);
+rank_ctrb = rank(controllability)
+
+observability = obsv(sys);
+rank_obsv = rank(observability)
 
 % plot open-loop poles
 % figure()
@@ -83,42 +89,83 @@ sys=ss(A,B,C,D);
 % plot(real(p), imag(p), 'r*'); % plot poles of open-loop system
 % title('Open-loop System Poles')
 
-dist = 1000;            % meters test distance
-dx = 0.1;               % meters distance increment
-spd_kph = 60            % kilometers per hour test speed
-wlen = dist/dx;         % calculate length of road vector
-w = func_roadElevationProfile(6, dist,dx,'figure',false,'fignum',6); %road profile vector
-u = zeros(1,numel(w));  % create empty input vector
-input = [u; w];
+%% run model on road
+model = "sine";
 
-spd_mps = spd_kph/3.6;  % convert nominal steady-state speed of simulation to meters/sec
-t_end = dist/spd_mps;   % final time value
-dt = t_end/size(w,2);   % calculate time step increment
-t = 0:dt:dist/spd_mps;  % create time vector
-t = t(1:end-1);         % clip time vector size to match road profile vector
-y = lsim(sys,input,t,x0);  % simulate system
+if model == "iso"
+    dist = 1000;            % meters test distance
+    dx = 0.1;               % meters distance increment
+    spd_kph = 60            % kilometers per hour test speed
+    wlen = dist/dx;         % calculate length of road vector
+    w = func_roadElevationProfile(7, dist,dx,'figure',false,'fignum',6); %road profile vector
+    w = w-w(1);
+    u = zeros(1,numel(w));  % create empty input vector
+    input = [u; w];
+    
+    x0 = [w(1) 0 0 0]; % initial conditions of state variables
+    
+    spd_mps = spd_kph/3.6;  % convert nominal steady-state speed of simulation to meters/sec
+    t_end = dist/spd_mps;   % final time value
+    dt = t_end/size(w,2);   % calculate time step increment
+    t = 0:dt:dist/spd_mps;  % create time vector
+    t = t(1:end-1);         % clip time vector size to match road profile vector
+    y = lsim(sys,input,t,x0);  % simulate system
+elseif model == "sine"
+ t_end = 20;
+ t = 0:0.005:t_end;
+ w = 0.1*sin(pi*(2.475*t+0.5).*t);
+ spd_kph = 60;              % kilometers per hour test speed
+ dist = t_end*spd_kph/3.6;
+ dx = dist/size(t,2);
+ u = zeros(1,numel(w));     % create empty input vector
+ input = [u; w];
+ x0 = [w(1) 0 0 0]; % initial conditions of state variables
+ y = lsim(sys,input,t,x0);
+end
+
 
 %% animate model simulation
 addpath("qcar_animation")
-z0 = w; % road elevation
-z1 = y(:,2);              % wheel cm position
+
+% z0 = x(1);          % road elevation
+% z1 = x(2);          % unsprung mass m deviation
+% z2 = x(3);          % sprung mass m deviation
+% t = x(4);           % current time
+
+z0 = w;               % road elevation
+z1 = y(:,2);          % wheel m position
 z2 = y(:,1);          % sprung mass position
-zmf = 5;              % exaggerate response for better visualization
+zmf = 1;              % exaggerate response for better visualization
 umf = 1;              % road scaling factor
 road_z = w;
 road_x = 0:dx:dist;
 for i=1:length(t)
     plotsusp([z0(i), z1(i)*zmf, z2(i)*zmf, t(i)],road_x,road_z,road_x(i),umf);
-    refresh
+    drawnow
 end
 
 %% plot FFT of qcar response to road input
 
-figure(7)
+%plot body response
+figure()
 hold on;
-[freq, amp, phase] = simpleFFT(y,dt);
+[freq, amp, phase] = simpleFFT(y(:,1),dt);
+loglog(freq, amp);
+set(gca,'xscale','log','yscale','log');
+grid on;
+title('FFT frequency profile of sprung mass acceleration')
+
+%% plot FFT of road input
+
+%plot body response
+figure()
+hold on;
+[freq, amp, phase] = simpleFFT(w,dt);
 plot(freq, amp);
-title('FFT frequency profile of unsprung mass acceleration')
+% set(gca,'xscale','log','yscale','log');
+grid on;
+title('FFT frequency profile of sprung mass acceleration')
+
 
 %% launch VDV calculation app
 cd 'vibrationdata_9_23_2021'

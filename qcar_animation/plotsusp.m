@@ -7,20 +7,20 @@ function plotsusp(x,road_x,road_z,curr_x,umf)
 
 % Vehicle positions:
 z0 = x(1);          % road elevation
-z1 = x(2);          % unsprung mass cm deviation
-z2 = x(3);          % sprung mass cm deviation
+z1 = x(2);          % unsprung mass m deviation
+z2 = x(3);          % sprung mass m deviation
 t = x(4);           % current time
 
 % Geometric suspension parameters:
-h1 = 0.35;          % resting position of unsprung cm
-h2 = 1.1;           % resting position of sprung cm
-h3 = 0.2;           % height of unsprung mass block
-h4 = 0.35;          % height of sprung mass block
-w1 = 0.4;           % width of unsprung mass block
-w2 = 0.5;           % width of sprung mass block
-w3 = 0.1;           % width of tire spring
-w4 = 0.15;          % width of suspension spring
-w5 = 0.25;          % spring/damper spacing
+h1 = 0.7;          % resting position of unsprung m
+h2 = 1.75;         % resting position of sprung m
+h3 = 0.2;          % height dimension of unsprung mass block
+h4 = 0.35;         % height dimension of sprung mass block
+w1 = 0.4;          % width dimension of unsprung mass block
+w2 = 0.5;          % width dimension of sprung mass block
+w3 = 0.1;          % width of tire spring
+w4 = 0.15;         % width of suspension spring
+w5 = 0.25;         % spring/damper spacing
 
 % Plotting parameter
 fw = 0.7;           % half of figure width
@@ -58,7 +58,7 @@ x3t = x0t + [w1/2;h3];
 x4t = x0t + [w1/2;0];
 fill([x1t(1) x2t(1) x3t(1) x4t(1)],[x1t(2) x2t(2) x3t(2) x4t(2)], ...
     [65 105 225]/255); hold on
-axis([-fw fw -0.25 1.5])
+axis([-fw fw -0.5 3])
 
 % Plot sprung mass block
 x0b = [0;x0_b];
