@@ -72,9 +72,11 @@ B=[0     0
    -1/m2 k2/m2];
 
 C=[1 0 0 0
+   0 1 0 0
    0 0 1 0];
 
 D=[0 0
+   0 0
    0 0];
 sys=ss(A,B,C,D);
 controllability = ctrb(sys);
@@ -93,11 +95,11 @@ rank_obsv = rank(observability)
 model = "bump";
 
 if model == "iso"
-    dist = 1000;            % meters test distance
+    dist = 250;             % meters test distance
     dx = 0.1;               % meters distance increment
     spd_kph = 60            % kilometers per hour test speed
     wlen = dist/dx;         % calculate length of road vector
-    w = func_roadElevationProfile(7, dist,dx,'figure',false,'fignum',6); %road profile vector
+    w = func_roadElevationProfile(6, dist,dx,'figure',false,'fignum',6); %road profile vector
     w = w-w(1);
     u = zeros(1,numel(w));  % create empty input vector
     input = [u; w];
@@ -112,7 +114,8 @@ if model == "iso"
     y = lsim(sys,input,t,x0);  % simulate system
 elseif model == "sine"
  t_end = 20;
- t = 0:0.005:t_end;
+ dt = 0.005
+ t = 0:dt:t_end;
  w = 0.1*sin(pi*(2.475*t+0.5).*t);
  spd_kph = 60;              % kilometers per hour test speed
  dist = t_end*spd_kph/3.6;
@@ -124,7 +127,8 @@ elseif model == "sine"
 
 elseif model == "bump"
  t_end = 5;
- t = 0:0.005:t_end;
+ dt = 0.005
+ t = 0:dt:t_end;
  i = 0;
  for idx = 0:0.005:t_end
      i = i+1;
@@ -148,22 +152,39 @@ end
 
 %% animate model simulation
 addpath("qcar_animation")
+saveVid = 0;
+filename = 'qcar_anim.mp4';
+v = VideoWriter(filename,'MPEG-4');
+v.FrameRate = 60;
 
-% z0 = x(1);          % road elevation
-% z1 = x(2);          % unsprung mass m deviation
-% z2 = x(3);          % sprung mass m deviation
-% t = x(4);           % current time
+% z0 = x(1);                   % road elevation
+% z1 = x(2);                   % unsprung mass m deviation
+% z2 = x(3);                   % sprung mass m deviation
+% t = x(4);                    % current time
 
-z0 = w;               % road elevation
-z1 = y(:,2);          % wheel m position
-z2 = y(:,1);          % sprung mass position
-zmf = 1;              % exaggerate response for better visualization
-umf = 1;              % road scaling factor
+z0 = w;                        % road elevation
+z1 = y(:,3);                   % wheel m position
+z2 = y(:,1);
+z2dot = [0 diff(y(:,2))'/dt];  % sprung mass acceleration
+zmf = 1;                       % exaggerate response for better visualization
+umf = 1;                       % road scaling factor
 road_z = w;
 road_x = 0:dx:dist;
+road_x = road_x(1:end-1);
+
+if saveVid
+    open(v);
+end
 for i=1:length(t)
     plotsusp([z0(i), z1(i)*zmf, z2(i)*zmf, t(i)],road_x,road_z,road_x(i),umf);
     drawnow
+    if saveVid && mod(i,3)==0
+        frame = getframe(gcf);
+        writeVideo(v,frame);
+    end
+end
+if saveVid
+    close(v);
 end
 
 %% plot FFT of qcar response to road input
@@ -190,8 +211,9 @@ title('FFT frequency profile of sprung mass acceleration')
 
 
 %% launch VDV calculation app
-cd 'vibrationdata_9_23_2021'
-data = [t' y] %use this to calculate VDV w/ settings:
+addpath('vibrationdata_9_23_2021\')
+data = [t' z2dot'] %use this to calculate VDV w/ settings:
+% Time History w/ Acceleration input, ISO Generic --> ISO 2631
 % m/sec^2, no mean removal, Wk z-axis weighting, no segmentation
 % start time = 0, end time = t(end)
 run('vibrationdata.m')
