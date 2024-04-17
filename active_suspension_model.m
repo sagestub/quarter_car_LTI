@@ -90,7 +90,7 @@ rank_obsv = rank(observability)
 % title('Open-loop System Poles')
 
 %% run model on road
-model = "sine";
+model = "bump";
 
 if model == "iso"
     dist = 1000;            % meters test distance
@@ -114,6 +114,28 @@ elseif model == "sine"
  t_end = 20;
  t = 0:0.005:t_end;
  w = 0.1*sin(pi*(2.475*t+0.5).*t);
+ spd_kph = 60;              % kilometers per hour test speed
+ dist = t_end*spd_kph/3.6;
+ dx = dist/size(t,2);
+ u = zeros(1,numel(w));     % create empty input vector
+ input = [u; w];
+ x0 = [w(1) 0 0 0]; % initial conditions of state variables
+ y = lsim(sys,input,t,x0);
+
+elseif model == "bump"
+ t_end = 5;
+ t = 0:0.005:t_end;
+ i = 0;
+ for idx = 0:0.005:t_end
+     i = i+1;
+     if idx>1 && idx<1.5
+         w(i) = 0.07*(1-cos(4*pi*idx));
+     elseif idx>2.5&& idx<3
+         w(i) = 0.1*(1-cos(4*pi*idx));
+     else
+         w(i) = 0;
+     end
+ end
  spd_kph = 60;              % kilometers per hour test speed
  dist = t_end*spd_kph/3.6;
  dx = dist/size(t,2);
