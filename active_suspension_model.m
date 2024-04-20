@@ -115,7 +115,7 @@ model = "iso";
 if model == "iso"
     dist = 250;             % meters test distance
     dx = 0.1;               % meters distance increment
-    spd_kph = 60            % kilometers per hour test speed
+    spd_kph = 60;           % kilometers per hour test speed
     wlen = dist/dx;         % calculate length of road vector
     w = func_roadElevationProfile(6, dist,dx,'figure',false,'fignum',6); %road profile vector
     w = w-w(1);
