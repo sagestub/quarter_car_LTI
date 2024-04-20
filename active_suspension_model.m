@@ -113,14 +113,18 @@ cl = 1;
 model = "iso";
 
 if model == "iso"
-    dist = 250;             % meters test distance
-    dx = 0.1;               % meters distance increment
+    newRoad = 0;
     spd_kph = 60;           % kilometers per hour test speed
-    wlen = dist/dx;         % calculate length of road vector
-    w = func_roadElevationProfile(6, dist,dx,'figure',false,'fignum',6); %road profile vector
-    w = w-w(1);
+    if newRoad % load road profile if none already created
+        dist = 250;             % meters test distance
+        dx = 0.1;               % meters distance incrementwlen = dist/dx;         % calculate length of road vector
+        w = func_roadElevationProfile(6, dist,dx,'figure',false,'fignum',6); %road profile vector
+        w = w-w(1);
+    else % use saved road profile
+        load("Class6_roadProfile.mat");
+    end
     
-    u = -K(1,:)*x;%zeros(1,numel(w));  % create empty input vector
+    u = zeros(1,numel(w));  % create empty input vector -K(1,:)*x;%
     input = [u; w];
     
     x0 = [w(1) 0 0 0]; % initial conditions of state variables
