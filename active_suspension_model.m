@@ -91,8 +91,26 @@ rank_obsv = rank(observability)
 % plot(real(p), imag(p), 'r*'); % plot poles of open-loop system
 % title('Open-loop System Poles')
 
+%% Create closed-loop state-space model
+% inputs: U (active forcer), W (road profile)
+% states:
+% x(0) = position of sprung mass (body)
+% x(1) = velocity of sprung mass (body)
+% x(2) = position of unsprung mass (wheel)
+% x(3) = velocity of unsprung mass (wheel)
+
+% R needs to match number of inputs
+% Q needs to match number of states
+R_k = 0.2
+Q_k = diag([1 1 1 1])
+[M, K, L] = icare(A,B,Q_k,R_k) 
+
+sys = ss(A-B(:,1)*K(1,:),B,C,D);
+cl = 1;
+
+
 %% run model on road
-model = "bump";
+model = "iso";
 
 if model == "iso"
     dist = 250;             % meters test distance
@@ -101,7 +119,8 @@ if model == "iso"
     wlen = dist/dx;         % calculate length of road vector
     w = func_roadElevationProfile(6, dist,dx,'figure',false,'fignum',6); %road profile vector
     w = w-w(1);
-    u = zeros(1,numel(w));  % create empty input vector
+    
+    u = -K(1,:)*x;%zeros(1,numel(w));  % create empty input vector
     input = [u; w];
     
     x0 = [w(1) 0 0 0]; % initial conditions of state variables
@@ -152,7 +171,7 @@ end
 
 %% animate model simulation
 addpath("qcar_animation")
-saveVid = 0;
+saveVid = 1;
 filename = 'qcar_anim.mp4';
 v = VideoWriter(filename,'MPEG-4');
 v.FrameRate = 60;
