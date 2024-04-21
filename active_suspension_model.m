@@ -101,16 +101,17 @@ rank_obsv = rank(observability)
 
 % R needs to match number of inputs
 % Q needs to match number of states
-R_k = 0.2
+R_k = 1
 Q_k = diag([1 1 1 1])
-[M, K, L] = icare(A,B,Q_k,R_k) 
+% [M, K, L] = icare(A,B,Q_k,R_k) 
+[K, ~, ~] = lqr(sys,Q_k,R_k)
 
-sys = ss(A-B(:,1)*K(1,:),B,C,D);
+sys = ss(A-B*K,B,C,D);
 cl = 1;
 
 
 %% run model on road
-model = "iso";
+model = "bump";
 
 if model == "iso"
     newRoad = 0;
@@ -124,7 +125,7 @@ if model == "iso"
         load("Class6_roadProfile.mat");
     end
     
-    u = zeros(1,numel(w));  % create empty input vector -K(1,:)*x;%
+    u = zeros(1,numel(w));  % create empty input vector 
     input = [u; w];
     
     x0 = [w(1) 0 0 0]; % initial conditions of state variables
@@ -135,6 +136,10 @@ if model == "iso"
     t = 0:dt:dist/spd_mps;  % create time vector
     t = t(1:end-1);         % clip time vector size to match road profile vector
     y = lsim(sys,input,t,x0);  % simulate system
+
+%     for tt = 0:dt,t_end
+        
+
 elseif model == "sine"
  t_end = 20;
  dt = 0.005
@@ -187,7 +192,7 @@ v.FrameRate = 60;
 
 z0 = w;                        % road elevation
 z1 = y(:,3);                   % wheel m position
-z2 = y(:,1);
+z2 = y(:,1);                   % body m position
 z2dot = [0 diff(y(:,2))'/dt];  % sprung mass acceleration
 zmf = 1;                       % exaggerate response for better visualization
 umf = 1;                       % road scaling factor
@@ -241,5 +246,15 @@ data = [t' z2dot'] %use this to calculate VDV w/ settings:
 % start time = 0, end time = t(end)
 run('vibrationdata.m')
 
+%% plot displacement of road, wheel, bodyo
 
+
+figure()
+plot(t,w)
+hold on
+plot(t,y(:,3))
+plot(t,y(:,1))
+legend('road','wheel','body')
+xlabel('time (sec)')
+ylabel('displacement (m)');
 
