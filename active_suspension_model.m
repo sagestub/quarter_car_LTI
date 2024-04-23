@@ -378,14 +378,36 @@ q_interp = logspace(log10(min(Q_R)), log10(max(Q_R)), 100); % Generate finer sam
 iso_VDV_interp = ppval(spline_iso_VDV, log10(q_interp)); % Evaluate the spline at the finer sampling points
 plot(q_interp, iso_VDV_interp,'Color','#0072BD'); % Plot the spline curve
 
-scatter(Q_R,bump_VDV_reduction,'^','Color',[0.4660 0.6740 0.1880])
+scatter(Q_R,bump_VDV_reduction,'g^')
 % Spline interpolation for bump_VDV_reduction vs. Q_R (logarithmic Q_R)
 spline_bump_VDV = spline(log10(Q_R), bump_VDV_reduction);
 q_interp = logspace(log10(min(Q_R)), log10(max(Q_R)), 100); % Generate finer sampling points for smoother spline plot
 bump_VDV_interp = ppval(spline_bump_VDV, log10(q_interp)); % Evaluate the spline at the finer sampling points
-plot(q_interp, bump_VDV_interp,'Color','#77AC30'); % Plot the spline curve
+plot(q_interp, bump_VDV_interp,'g'); % Plot the spline curve
 
 legend('ISO Grade F Road Case', 'ISO Grade F Spline Fit','Speed Bump Case','Speed Bump Spline Fit');
 xlabel('Q_R');
 ylabel('Percent VDV Reduction');
 title('Effect of LQR Weights on VDV Reduction Trend');
+
+%% Analyze trend between VDV reduction and power consumption
+
+iso_VDV_raw = [7.568,7.568, 7.647, 7.552, 7.012, 6.141, 5.547, 4.643, 3.072, 1.755, 0.9851, 0.4301];
+iso_VDV_reduction = (7.658-iso_VDV_raw)./7.658.*100;
+iso_pwr_kW = [6.7e-7, 6.7e-5, 6.67e-3, 0.064, 0.4726, 1.651, 3.514, 6.224, 9.168, 16.30, 24.14, 27.96];
+
+bump_VDV_raw = [10,10, 9.98,9.776, 8.449, 5.631, 3.26, 1.507, 0.5182, 0.1787, 0.06362, 0.02212];
+bump_VDV_reduction = (10-bump_VDV_raw)./10.*100;
+bump_pwr_kW = [1.2e-6, 1.2e-4, 1.19e-1, 0.112, 0.761, 2.404, 5.48, 8.441, 10.57, 11.71, 12.20, 12.41];
+
+figure()
+hold on;
+plot(iso_pwr_kW,iso_VDV_reduction)
+plot(bump_pwr_kW,bump_VDV_reduction)
+
+xlabel('Peak Power Required (kW)');
+ylabel('Percent VDV Reduction From Passive Baseline')
+title('Power Cost of Active Suspension Performance Measured in VDV Reduction')
+legend('ISO Grade F Road Case','Speed Bump Case')
+
+
