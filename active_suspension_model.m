@@ -102,11 +102,12 @@ cl = 0;
 
 % R needs to match number of inputs
 % Q needs to match number of states
-R_k = 1
-Q_k = [1e5 0 0 0
-       0 1e5 0 0
-       0 0 1e5 0
-       0 0 0 0];
+% R_k = 1
+% Q_k = [1e2 0 0 0
+%        0 1e2 0 0
+%        0 0 1e2 0
+%        0 0 0 0];
+load('trial_9.mat')
 fprintf('Q to R = %.2s',Q_k(1,1)/R_k)
 % [M, K, L] = icare(A,B,Q_k,R_k) 
 [K, ~, ~] = lqr(ss(A,B(:,1),C,D(:,1)),Q_k,R_k)
@@ -205,15 +206,16 @@ if cl
         K(3)*x_closedloop(idx,3)+K(4)*x_closedloop(idx,4);
     end
     
-    figure()
-    subplot(2,1,1)
-    plot(t,z2dot)
-    legend("body accel")
-    subplot(2,1,2)
-    plot(t,u_cl)
-    legend("ctrl force")
+%     figure()
+%     subplot(2,1,1)
+%     plot(t,z2dot)
+%     legend("body accel")
+%     subplot(2,1,2)
+%     plot(t,u_cl)
+%     legend("ctrl force")
 
-    fprintf('Max actuator force: %.2f Watts\n', max(u_cl))
+    fprintf('Max actuator force: %.2f Newtons\n', max(u_cl))
+    fprintf('Max actuator power: %.2f Watts\n', max(u_cl.*(x_closedloop(:,2)-x_closedloop(:,4))))
 end
 
 %% animate model simulation
@@ -390,15 +392,36 @@ xlabel('Q_R');
 ylabel('Percent VDV Reduction');
 title('Effect of LQR Weights on VDV Reduction Trend');
 
-%% Analyze trend between VDV reduction and power consumption
+%% Analyze trend between VDV reduction and peak force required
 
 iso_VDV_raw = [7.568,7.568, 7.647, 7.552, 7.012, 6.141, 5.547, 4.643, 3.072, 1.755, 0.9851, 0.4301];
 iso_VDV_reduction = (7.658-iso_VDV_raw)./7.658.*100;
-iso_pwr_kW = [6.7e-7, 6.7e-5, 6.67e-3, 0.064, 0.4726, 1.651, 3.514, 6.224, 9.168, 16.30, 24.14, 27.96];
+iso_f_kN = [6.7e-7, 6.7e-5, 6.67e-3, 0.064, 0.4726, 1.651, 3.514, 6.224, 9.168, 16.30, 24.14, 27.96];
 
 bump_VDV_raw = [10,10, 9.98,9.776, 8.449, 5.631, 3.26, 1.507, 0.5182, 0.1787, 0.06362, 0.02212];
 bump_VDV_reduction = (10-bump_VDV_raw)./10.*100;
-bump_pwr_kW = [1.2e-6, 1.2e-4, 1.19e-1, 0.112, 0.761, 2.404, 5.48, 8.441, 10.57, 11.71, 12.20, 12.41];
+bump_f_kN = [1.2e-6, 1.2e-4, 1.19e-1, 0.112, 0.761, 2.404, 5.48, 8.441, 10.57, 11.71, 12.20, 12.41];
+
+figure()
+hold on;
+plot(iso_f_kN,iso_VDV_reduction)
+plot(bump_f_kN,bump_VDV_reduction)
+
+xlabel('Peak Force Demanded (kN)');
+ylabel('Percent VDV Reduction')
+title('Forcer Size Requirement for VDV Reduction From Passive Baseline')
+legend('ISO Grade F Road Case','Speed Bump Case')
+grid on;
+
+%% Analyze trend between VDV reduction and peak power required
+
+iso_VDV_raw = [7.568,7.568, 7.647, 7.552, 7.012, 6.141, 5.547, 4.643, 3.072, 1.755, 0.9851, 0.4301];
+iso_VDV_reduction = (7.658-iso_VDV_raw)./7.658.*100;
+iso_pwr_kW = [1.2e-6, 1.2e-4, 1.194e-2, 0.111, 0.7563, 2.734, 7.266, 9.497, 15.553, 37.768, 67.603, 83.502];
+
+bump_VDV_raw = [10,10, 9.98,9.776, 8.449, 5.631, 3.26, 1.507, 0.5182, 0.1787, 0.06362, 0.02212];
+bump_VDV_reduction = (10-bump_VDV_raw)./10.*100;
+bump_pwr_kW = [3.6e-6, 3.6e-4, 3.553e-2, 0.335, 2.152, 4.586, 6.573, 7.597, 8.394, 9.731, 10.956, 11.622];
 
 figure()
 hold on;
@@ -407,7 +430,8 @@ plot(bump_pwr_kW,bump_VDV_reduction)
 
 xlabel('Peak Power Required (kW)');
 ylabel('Percent VDV Reduction From Passive Baseline')
-title('Power Cost of Active Suspension Performance Measured in VDV Reduction')
+title('Power Cost of VDV Reduction')
 legend('ISO Grade F Road Case','Speed Bump Case')
+grid on;
 
 
